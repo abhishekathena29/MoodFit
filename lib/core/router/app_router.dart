@@ -47,14 +47,24 @@ GoRouter buildRouter(AuthProvider auth, UserDataProvider data) {
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
       GoRoute(path: '/rewards', builder: (context, state) => const RewardsScreen()),
-      ShellRoute(
-        builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),
-        routes: [
-          GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
-          GoRoute(path: '/log', builder: (context, state) => const LogScreen()),
-          GoRoute(path: '/insights', builder: (context, state) => const InsightsScreen()),
-          GoRoute(path: '/muse', builder: (context, state) => const MuseScreen()),
-          GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/log', builder: (context, state) => const LogScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/muse', builder: (context, state) => const MuseScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/insights', builder: (context, state) => const InsightsScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
+          ]),
         ],
       ),
     ],

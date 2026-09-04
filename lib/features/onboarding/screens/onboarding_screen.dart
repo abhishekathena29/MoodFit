@@ -117,10 +117,16 @@ class _WelcomeStep extends StatelessWidget {
           const SizedBox(height: 32),
           Text('YOUR FIRST NAME', style: AppTheme.mono()),
           const SizedBox(height: 8),
-          _TextField(controller: controller, hint: 'Riya'),
+          _TextField(controller: controller, hint: 'e.g. Alex'),
           const Spacer(),
           const SizedBox(height: 32),
-          PrimaryButton(label: 'Continue', onTap: onContinue),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) => PrimaryButton(
+              label: 'Continue',
+              onTap: value.text.trim().isEmpty ? null : onContinue,
+            ),
+          ),
         ],
       ),
     );

@@ -29,7 +29,7 @@ class RewardsScreen extends StatelessWidget {
     }
     final toNext = nextReward != null ? nextReward.at - store.streak : 0;
 
-    return AppShell(
+    return AppShell.page(
       currentPath: '/rewards',
       title: 'Rewards',
       child: Padding(
