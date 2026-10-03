@@ -47,6 +47,7 @@ GoRouter buildRouter(AuthProvider auth, UserDataProvider data) {
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
       GoRoute(path: '/rewards', builder: (context, state) => const RewardsScreen()),
+      GoRoute(path: '/style-profile', builder: (context, state) => const OnboardingScreen(editing: true)),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [

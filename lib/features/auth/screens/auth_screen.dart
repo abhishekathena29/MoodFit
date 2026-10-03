@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/providers/user_data_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/fade_slide_in.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../providers/auth_provider.dart';
 
-/// Email/password sign-in backed by Firebase Auth ([AuthProvider]). A
-/// successful sign-up still lands on Onboarding — the Firestore profile
-/// (name, consent) doesn't exist yet, so the router sends new accounts
-/// there automatically.
+/// Email/password sign-in backed by Firebase Auth ([AuthProvider]). Sign-up
+/// also asks for a name and creates the Firestore profile with it; the
+/// router then sends new accounts to the onboarding fashion quiz.
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -22,12 +22,14 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   bool signUp = true;
   bool _submitting = false;
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _error;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -36,6 +38,11 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _submit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final name = _nameController.text.trim();
+    if (signUp && name.isEmpty) {
+      setState(() => _error = 'Tell us what to call you.');
+      return;
+    }
     if (!email.contains('@') || email.length < 5) {
       setState(() => _error = 'Enter a valid email address.');
       return;
@@ -50,9 +57,11 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     final auth = context.read<AuthProvider>();
+    final data = context.read<UserDataProvider>();
     final ok = signUp
         ? await auth.signUp(email: email, password: password)
         : await auth.signIn(email: email, password: password);
+    if (ok && signUp) await data.createProfile(name: name);
 
     if (!mounted) return;
     setState(() {
@@ -81,6 +90,17 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: AppTheme.sans(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.8),
                 ),
                 const SizedBox(height: 32),
+                if (signUp) ...[
+                  Text('YOUR NAME', style: AppTheme.mono()),
+                  const SizedBox(height: 8),
+                  _AuthField(
+                    controller: _nameController,
+                    hint: 'e.g. Alex',
+                    keyboardType: TextInputType.name,
+                    capitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 Text('EMAIL', style: AppTheme.mono()),
                 const SizedBox(height: 8),
                 _AuthField(controller: _emailController, hint: 'you@example.com', keyboardType: TextInputType.emailAddress),
@@ -127,12 +147,14 @@ class _AuthField extends StatelessWidget {
   final String hint;
   final bool obscure;
   final TextInputType? keyboardType;
+  final TextCapitalization capitalization;
 
   const _AuthField({
     required this.controller,
     required this.hint,
     this.obscure = false,
     this.keyboardType,
+    this.capitalization = TextCapitalization.none,
   });
 
   @override
@@ -148,6 +170,7 @@ class _AuthField extends StatelessWidget {
         controller: controller,
         obscureText: obscure,
         keyboardType: keyboardType,
+        textCapitalization: capitalization,
         style: AppTheme.sans(fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,

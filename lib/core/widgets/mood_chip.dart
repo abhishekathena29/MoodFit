@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 
 /// The pill-shaped mood selector used on Home ("How do you feel in this?")
 /// and Log ("Mood in this fit"). Same states in both places: default,
-/// hover-ish "warm" tint for Heavy, and active/selected (sage).
+/// amber "gentle care" tint for heavier moods, and active/selected (sage).
 class MoodChip extends StatelessWidget {
   final MoodDef mood;
   final bool active;
@@ -24,7 +24,7 @@ class MoodChip extends StatelessWidget {
       background = AppColors.sageSoft;
       borderColor = AppColors.sage;
       textColor = AppColors.sage;
-    } else if (mood.warm) {
+    } else if (mood.heavy) {
       background = AppColors.amberWarm.withValues(alpha: 0.1);
     } else {
       background = Colors.transparent;
@@ -44,7 +44,7 @@ class MoodChip extends StatelessWidget {
           ),
         ),
         child: Text(
-          mood.label,
+          '${mood.emoji}  ${mood.label}',
           style: AppTheme.sans(
             fontSize: 12,
             fontWeight: active ? FontWeight.w600 : FontWeight.w400,

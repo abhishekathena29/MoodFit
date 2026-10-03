@@ -20,17 +20,4 @@ class AppColors {
   static const beige = Color(0xFFE5DDD0);
   static const amberWarm = Color(0xFFE69B4C);
   static const amberDeep = Color(0xFF793900);
-
-  static Color paletteToColor(String palette) {
-    switch (palette) {
-      case 'blue-mist':
-        return blueMist;
-      case 'beige':
-        return beige;
-      case 'amber-warm':
-        return amberWarm;
-      default:
-        return sage;
-    }
-  }
 }

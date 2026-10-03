@@ -7,8 +7,8 @@ import '../../../core/widgets/fade_slide_in.dart';
 import '../../../core/widgets/primary_button.dart';
 
 /// The very first screen a new install sees — brand intro, before any
-/// account exists. "Get Started" leads into /auth; onboarding (name +
-/// ready) only happens after that, once someone is signed in.
+/// account exists. "Get Started" leads into /auth; onboarding (fashion
+/// quiz) only happens after that, once someone is signed in.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -53,7 +53,7 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    'Your logs stay on this device.',
+                    'Your logs are private to your account.',
                     style: AppTheme.sans(fontSize: 11, color: AppColors.foreground.withValues(alpha: 0.4)),
                   ),
                 ),

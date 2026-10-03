@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/providers/user_data_provider.dart';
+import '../providers/muse_provider.dart';
 import '../providers/muse_reply.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/fade_slide_in.dart';
 import '../../../core/widgets/pulsing_dot.dart';
 
-class _ChatMessage {
-  final String text;
-  final bool isUser;
-  const _ChatMessage(this.text, {required this.isUser});
-}
-
-/// Muse — the bottom-nav chat tab. Answers fashion/style questions from a
-/// small local rule engine ([MuseReply]) and, every few turns, gently folds
-/// in a check-in on how the person is actually feeling. Fully on-device —
-/// no network call, matching the rest of the app's local-first model.
+/// Muse — the bottom-nav chat tab. Replies come from Groq via
+/// [MuseProvider] (falling back to the local [MuseReply] rules), and the
+/// conversation is saved to Firestore so it survives restarts.
 class MuseScreen extends StatefulWidget {
   const MuseScreen({super.key});
 
@@ -26,9 +22,7 @@ class MuseScreen extends StatefulWidget {
 class _MuseScreenState extends State<MuseScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final List<_ChatMessage> _messages = [_ChatMessage(MuseReply.greeting(), isUser: false)];
-  int _turnCount = 0;
-  bool _typing = false;
+  int _lastCount = 0;
 
   @override
   void dispose() {
@@ -52,25 +46,22 @@ class _MuseScreenState extends State<MuseScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     _controller.clear();
-    setState(() {
-      _messages.add(_ChatMessage(text, isUser: true));
-      _typing = true;
-    });
     _scrollToEnd();
-
-    _turnCount++;
-    final reply = MuseReply.reply(text, turnCount: _turnCount);
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    setState(() {
-      _typing = false;
-      _messages.add(_ChatMessage(reply, isUser: false));
-    });
-    _scrollToEnd();
+    await context.read<MuseProvider>().send(text, context.read<UserDataProvider>());
   }
 
   @override
   Widget build(BuildContext context) {
+    final muse = context.watch<MuseProvider>();
+    final name = context.select<UserDataProvider, String>((s) => s.name);
+    final messages = [
+      MuseMessage(id: 'greeting', text: MuseReply.greeting(name), isUser: false),
+      ...muse.messages,
+    ];
+    if (messages.length != _lastCount) {
+      _lastCount = messages.length;
+      _scrollToEnd();
+    }
     // Screen height minus the shared header/xp bar, Muse's own title block,
     // the input row and the floating bottom nav's clearance — so the input
     // stays visible above the nav instead of scrolling behind it.
@@ -106,10 +97,10 @@ class _MuseScreenState extends State<MuseScreen> {
               height: chatHeight,
               child: ListView.builder(
                 controller: _scrollController,
-                itemCount: _messages.length + (_typing ? 1 : 0),
+                itemCount: messages.length + (muse.typing ? 1 : 0),
                 itemBuilder: (context, i) {
-                  if (i >= _messages.length) return const _TypingBubble();
-                  return _Bubble(message: _messages[i]);
+                  if (i >= messages.length) return const _TypingBubble();
+                  return _Bubble(message: messages[i]);
                 },
               ),
             ),
@@ -144,7 +135,7 @@ class _MuseScreenState extends State<MuseScreen> {
                   borderRadius: BorderRadius.circular(16),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: _send,
+                    onTap: muse.typing ? null : _send,
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: Icon(Icons.arrow_upward_rounded, size: 18, color: AppColors.background),
@@ -161,7 +152,7 @@ class _MuseScreenState extends State<MuseScreen> {
 }
 
 class _Bubble extends StatelessWidget {
-  final _ChatMessage message;
+  final MuseMessage message;
 
   const _Bubble({required this.message});
 

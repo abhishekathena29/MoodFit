@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/models/log_entry.dart';
 import '../../../core/models/mood.dart';
+import '../../../core/models/palette.dart';
 import '../../../core/models/style.dart';
 import '../../../core/providers/user_data_provider.dart';
 import '../../../core/services/toast_service.dart';
@@ -10,7 +11,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/fade_slide_in.dart';
 import '../../../core/widgets/mood_chip.dart';
+import '../../../core/widgets/palette_swatch.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/research_hint.dart';
 
 /// Direct port of src/routes/log.tsx, extended with style and aesthetic
 /// steps so Insights can correlate more than just palette and mood.
@@ -21,16 +24,9 @@ class LogScreen extends StatefulWidget {
   State<LogScreen> createState() => _LogScreenState();
 }
 
-const _kPalettes = [
-  (key: 'sage', label: 'Sage'),
-  (key: 'blue-mist', label: 'Mist'),
-  (key: 'beige', label: 'Beige'),
-  (key: 'amber-warm', label: 'Amber'),
-];
-
 class _LogScreenState extends State<LogScreen> {
   String? mood;
-  String palette = 'sage';
+  String? palette;
   String? style;
   String? aesthetic;
   final _noteController = TextEditingController();
@@ -63,6 +59,9 @@ class _LogScreenState extends State<LogScreen> {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<UserDataProvider>();
+    final paletteDef = paletteByKey(palette);
+    final aestheticDef = aestheticByKey(aesthetic);
+    final moodDef = mood == null ? null : moodByKey(mood!);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -80,9 +79,21 @@ class _LogScreenState extends State<LogScreen> {
             _StepCard(
               step: 'Step 2',
               title: 'Dominant palette',
-              child: _PaletteGrid(
-                selected: palette,
-                onSelect: (p) => setState(() => palette = p),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _PaletteGrid(
+                    selected: palette,
+                    onSelect: (p) => setState(() => palette = palette == p ? null : p),
+                  ),
+                  if (paletteDef != null) ...[
+                    const SizedBox(height: 12),
+                    ResearchHint(
+                      title: '${paletteDef.label} colors often feel',
+                      body: '${feelingsSentence(paletteDef.feelings)}.\n${paletteDef.description}.',
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -105,16 +116,28 @@ class _LogScreenState extends State<LogScreen> {
             _StepCard(
               step: 'Step 4',
               title: 'Aesthetic',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: kAesthetics
-                    .map((a) => _TagChip(
-                          label: a.label,
-                          active: aesthetic == a.key,
-                          onTap: () => setState(() => aesthetic = aesthetic == a.key ? null : a.key),
-                        ))
-                    .toList(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: kAesthetics
+                        .map((a) => _TagChip(
+                              label: a.label,
+                              active: aesthetic == a.key,
+                              onTap: () => setState(() => aesthetic = aesthetic == a.key ? null : a.key),
+                            ))
+                        .toList(),
+                  ),
+                  if (aestheticDef != null && aestheticDef.feelings.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    ResearchHint(
+                      title: '${aestheticDef.label} often feels',
+                      body: '${feelingsSentence(aestheticDef.feelings)}.',
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -135,6 +158,19 @@ class _LogScreenState extends State<LogScreen> {
                             ))
                         .toList(),
                   ),
+                  if (moodDef != null) ...[
+                    const SizedBox(height: 12),
+                    ResearchHint.forMood(moodDef),
+                    if (paletteDef != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        moodDef.palettes.contains(paletteDef.key)
+                            ? '✓ ${paletteDef.label} colors line up with this mood.'
+                            : '${paletteDef.label} colors aren\'t typical for this mood — worth noting how it felt.',
+                        style: AppTheme.mono(fontSize: 10, color: AppColors.foreground.withValues(alpha: 0.6)),
+                      ),
+                    ],
+                  ],
                   const SizedBox(height: 16),
                   _NoteField(controller: _noteController),
                 ],
@@ -260,42 +296,42 @@ class _PhotoUploadBox extends StatelessWidget {
 }
 
 class _PaletteGrid extends StatelessWidget {
-  final String selected;
+  final String? selected;
   final ValueChanged<String> onSelect;
 
   const _PaletteGrid({required this.selected, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: _kPalettes.map((p) {
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 4,
+      crossAxisSpacing: 4,
+      childAspectRatio: 0.85,
+      children: kPalettes.map((p) {
         final active = selected == p.key;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => onSelect(p.key),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: active ? AppColors.muted : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                border: active ? Border.all(color: AppColors.sage, width: 2) : null,
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.paletteToColor(p.key),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(p.label, style: AppTheme.sans(fontSize: 10, fontWeight: FontWeight.w500)),
-                ],
-              ),
+        return GestureDetector(
+          onTap: () => onSelect(p.key),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            decoration: BoxDecoration(
+              color: active ? AppColors.muted : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: active ? AppColors.sage : Colors.transparent, width: 2),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                PaletteSwatch(palette: p.key, size: 36, radius: 18),
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(p.label, style: AppTheme.sans(fontSize: 10, fontWeight: FontWeight.w500)),
+                ),
+              ],
             ),
           ),
         );
@@ -372,14 +408,7 @@ class _RecentLogsCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.paletteToColor(l.palette),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  PaletteSwatch(palette: l.palette, size: 32, radius: 8),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

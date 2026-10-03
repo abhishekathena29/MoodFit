@@ -6,6 +6,7 @@ import 'core/providers/user_data_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/muse/providers/muse_provider.dart';
 import 'firebase_options.dart';
 
 /// MoodFit — wardrobe intelligence for well-being.
@@ -31,6 +32,7 @@ class MoodFitApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserDataProvider()),
+        ChangeNotifierProvider(create: (_) => MuseProvider()),
       ],
       child: Builder(
         builder: (context) {
